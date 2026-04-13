@@ -1,4 +1,4 @@
-const CACHE = 'justwater-v1';
+const CACHE = 'justwater-v2';
 const ASSETS = [
   './',
   './index.html',
