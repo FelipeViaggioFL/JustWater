@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node generate-icons.js)",
+      "Bash(python -m http.server 8080)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s http://localhost:8080/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/manifest.json)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/sw.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/icons/icon-192.png)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/icons/icon-512.png)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/icons/icon-180.png)"
+    ]
+  }
+}

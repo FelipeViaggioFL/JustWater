@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JustWater">
+<meta name="theme-color" content="#0B1426">
+<meta name="description" content="Track your daily water intake">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>JustWater</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#0B1426;
+  --bg-card:#111D35;
+  --bg-elevated:#182847;
+  --accent:#38BDF8;
+  --accent-dim:#2196C9;
+  --accent-soft:rgba(56,189,248,.12);
+  --accent-glow:rgba(56,189,248,.35);
+  --success:#34D399;
+  --success-dim:#2CB885;
+  --success-soft:rgba(52,211,153,.12);
+  --text:#F0F4F8;
+  --text-sec:#8899AA;
+  --text-muted:#4E6070;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+
+html,body{
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+}
+
+body{
+  display:flex;
+  justify-content:center;
+  min-height:100vh;
+  min-height:100dvh;
+  background-image:radial-gradient(ellipse at 50% 0%,rgba(56,189,248,.07) 0%,transparent 60%);
+}
+
+#app{
+  width:100%;
+  max-width:420px;
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  padding:calc(var(--safe-t) + 20px) calc(var(--safe-r) + 24px) calc(var(--safe-b) + 28px) calc(var(--safe-l) + 24px);
+}
+
+/* ── Header ── */
+.header{text-align:center;padding-top:8px;margin-bottom:28px}
+.app-title{
+  font-size:22px;font-weight:700;color:var(--accent);
+  letter-spacing:-.02em;margin-bottom:4px;
+}
+.app-title span{font-weight:400;opacity:.65}
+.current-date{font-size:14px;color:var(--text-sec);font-weight:400}
+
+/* ── Water Circle ── */
+.progress-section{display:flex;justify-content:center;margin-bottom:28px;flex-shrink:0}
+
+.water-circle{
+  width:224px;height:224px;border-radius:50%;
+  position:relative;overflow:hidden;
+  background:var(--bg-card);
+  border:2.5px solid rgba(56,189,248,.18);
+  transition:border-color .5s ease;
+}
+.water-circle.done{border-color:rgba(52,211,153,.35)}
+
+.water-fill{
+  position:absolute;bottom:0;left:-20%;width:140%;
+  height:0%;
+  transition:height .8s cubic-bezier(.4,0,.2,1);
+  background:linear-gradient(to top,rgba(56,189,248,.3),rgba(56,189,248,.12));
+}
+.water-circle.done .water-fill{
+  background:linear-gradient(to top,rgba(52,211,153,.3),rgba(52,211,153,.12));
+}
+
+.water-fill::before,.water-fill::after{
+  content:'';position:absolute;top:-15px;left:-30%;width:160%;height:35px;
+  border-radius:43%;opacity:0;transition:opacity .6s ease;
+}
+.water-fill.has-water::before,.water-fill.has-water::after{opacity:1}
+
+.water-fill::before{background:rgba(56,189,248,.22);animation:wave 7s linear infinite}
+.water-fill::after{background:rgba(56,189,248,.10);animation:wave 11s linear infinite reverse;top:-10px;border-radius:46%}
+.water-circle.done .water-fill::before{background:rgba(52,211,153,.22)}
+.water-circle.done .water-fill::after{background:rgba(52,211,153,.10)}
+
+@keyframes wave{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.water-content{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:1;
+}
+
+.count-row{display:flex;align-items:baseline;gap:2px}
+.glass-count{
+  font-size:62px;font-weight:700;line-height:1;
+  letter-spacing:-.04em;font-variant-numeric:tabular-nums;
+  transition:transform .3s cubic-bezier(.175,.885,.32,1.275);
+}
+.glass-count.bump{transform:scale(1.15)}
+.glass-goal{font-size:22px;font-weight:400;color:var(--text-sec)}
+.glass-label{
+  font-size:12px;color:var(--text-muted);margin-top:2px;
+  text-transform:uppercase;letter-spacing:.1em;font-weight:500;
+}
+.ml-count{
+  font-size:14px;color:var(--text-sec);font-weight:500;
+  margin-top:1px;font-variant-numeric:tabular-nums;
+}
+
+/* ── Buttons ── */
+.actions{
+  display:flex;align-items:center;justify-content:center;
+  gap:24px;margin-bottom:32px;flex-shrink:0;
+}
+
+.btn-add{
+  width:72px;height:72px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,#38BDF8,#1d8abf);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;overflow:hidden;
+  box-shadow:0 4px 24px rgba(56,189,248,.35);
+  transition:transform .15s ease,box-shadow .15s ease;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+}
+.btn-add:active{transform:scale(.9);box-shadow:0 2px 12px rgba(56,189,248,.2)}
+.btn-add svg{pointer-events:none}
+
+.btn-minus{
+  width:48px;height:48px;border-radius:50%;
+  border:2px solid var(--text-muted);background:transparent;
+  color:var(--text-sec);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:transform .15s ease,opacity .3s ease,border-color .3s ease;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+}
+.btn-minus:active{transform:scale(.88)}
+.btn-minus.disabled{opacity:.25;pointer-events:none}
+.btn-minus svg{pointer-events:none}
+
+.btn-spacer{width:48px;flex-shrink:0}
+
+/* Ripple */
+.ripple{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,.3);
+  transform:scale(0);animation:ripple .6s ease-out;pointer-events:none;
+}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:var(--bg-elevated);color:var(--accent);
+  font-size:15px;font-weight:600;
+  padding:8px 20px;border-radius:20px;
+  pointer-events:none;opacity:0;z-index:100;
+  border:1px solid var(--accent-soft);
+  white-space:nowrap;
+}
+.toast.show{animation:toast .8s ease-out forwards}
+
+@keyframes toast{
+  0%{opacity:1;transform:translate(-50%,-50%) scale(.85)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(1)}
+}
+
+/* ── History ── */
+.history-section{flex:1;min-height:0;display:flex;flex-direction:column}
+.history-title{
+  font-size:14px;font-weight:600;color:var(--text-sec);
+  margin-bottom:14px;letter-spacing:-.01em;
+}
+
+.history-chart{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  flex:1;min-height:100px;max-height:150px;gap:6px;
+  padding-bottom:28px;position:relative;
+}
+
+.history-day{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  height:100%;position:relative;
+}
+
+.history-count{
+  font-size:10px;color:var(--text-sec);font-weight:600;
+  margin-bottom:4px;font-variant-numeric:tabular-nums;
+  min-height:14px;
+}
+
+.history-bar-track{
+  flex:1;width:100%;max-width:34px;border-radius:8px;
+  background:var(--accent-soft);position:relative;
+  overflow:hidden;display:flex;align-items:flex-end;
+}
+
+.history-bar{
+  width:100%;border-radius:8px;
+  background:linear-gradient(to top,var(--accent),var(--accent-dim));
+  transition:height .5s cubic-bezier(.4,0,.2,1);
+}
+.history-bar.complete{
+  background:linear-gradient(to top,var(--success),var(--success-dim));
+}
+
+.history-day-label{
+  font-size:11px;color:var(--text-muted);margin-top:8px;
+  font-weight:500;letter-spacing:.02em;
+}
+.history-day.today .history-day-label{color:var(--accent);font-weight:600}
+
+/* ── Celebration ── */
+.celebration{position:fixed;inset:0;pointer-events:none;z-index:200;overflow:hidden}
+.celebration.hidden{display:none}
+
+.confetti{
+  position:absolute;border-radius:2px;
+  animation:confetti-fall var(--dur,2.5s) ease-in forwards;
+  animation-delay:var(--del,0s);
+}
+@keyframes confetti-fall{
+  0%{transform:translateY(-10vh) rotate(0) scale(1);opacity:1}
+  100%{transform:translateY(110vh) rotate(720deg) scale(.4);opacity:0}
+}
+
+/* ── Goal message ── */
+.goal-msg{
+  text-align:center;font-size:13px;color:var(--text-muted);
+  margin-top:auto;padding-top:16px;font-weight:400;
+  opacity:0;transition:opacity .5s ease;
+}
+.goal-msg.visible{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="header">
+    <h1 class="app-title">Just<span>Water</span></h1>
+    <p class="current-date" id="currentDate"></p>
+  </header>
+
+  <section class="progress-section">
+    <div class="water-circle" id="waterCircle">
+      <div class="water-fill" id="waterFill"></div>
+      <div class="water-content">
+        <div class="count-row">
+          <span class="glass-count" id="glassCount">0</span>
+          <span class="glass-goal">/ 8</span>
+        </div>
+        <span class="glass-label">glasses</span>
+        <span class="ml-count" id="mlCount">0 ml</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="actions">
+    <button class="btn-minus disabled" id="btnMinus" aria-label="Remove one glass">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <line x1="5" y1="10" x2="15" y2="10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button class="btn-add" id="btnAdd" aria-label="Add one glass of water">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <line x1="14" y1="6" x2="14" y2="22" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="6" y1="14" x2="22" y2="14" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="btn-spacer" aria-hidden="true"></div>
+  </section>
+
+  <section class="history-section">
+    <h2 class="history-title">This Week</h2>
+    <div class="history-chart" id="historyChart"></div>
+  </section>
+
+  <p class="goal-msg" id="goalMsg">Stay hydrated!</p>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="celebration" class="celebration hidden"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var KEY = 'justwater_data';
+  var GOAL = 8;
+  var ML = 250;
+  var DAYS = 7;
+
+  /* DOM */
+  var countEl   = document.getElementById('glassCount');
+  var mlEl      = document.getElementById('mlCount');
+  var fillEl    = document.getElementById('waterFill');
+  var circleEl  = document.getElementById('waterCircle');
+  var btnAdd    = document.getElementById('btnAdd');
+  var btnMin    = document.getElementById('btnMinus');
+  var chartEl   = document.getElementById('historyChart');
+  var dateEl    = document.getElementById('currentDate');
+  var toastEl   = document.getElementById('toast');
+  var celebEl   = document.getElementById('celebration');
+  var goalEl    = document.getElementById('goalMsg');
+
+  /* Data */
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY))||{} }catch(e){ return {} } }
+  function save(d){ localStorage.setItem(KEY, JSON.stringify(d)) }
+
+  function today(){
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  function count(){ return load()[today()]||0 }
+
+  /* Actions */
+  function add(){
+    var d = load(), t = today(), old = d[t]||0;
+    d[t] = old + 1;
+    save(d);
+    render();
+    toast('+'+ML+' ml');
+    bump();
+    ripple(btnAdd);
+    if(old < GOAL && d[t] >= GOAL) setTimeout(celebrate, 350);
+  }
+
+  function sub(){
+    var d = load(), t = today();
+    if(!d[t] || d[t]<=0) return;
+    d[t]--;
+    if(d[t]===0) delete d[t];
+    save(d);
+    render();
+    toast('-'+ML+' ml');
+    bump();
+  }
+
+  /* Render */
+  function render(){
+    var c = count(), done = c >= GOAL;
+    countEl.textContent = c;
+    mlEl.textContent = (c*ML).toLocaleString()+' ml';
+    var pct = Math.min((c/GOAL)*100, 100);
+    fillEl.style.height = pct+'%';
+    fillEl.classList.toggle('has-water', c > 0);
+    circleEl.classList.toggle('done', done);
+    btnMin.classList.toggle('disabled', c === 0);
+    goalEl.classList.toggle('visible', done);
+    goalEl.textContent = done ? 'Goal reached!' : 'Stay hydrated!';
+    renderDate();
+    renderHistory();
+  }
+
+  function renderDate(){
+    dateEl.textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  }
+
+  function renderHistory(){
+    var data = load(), days = lastN(DAYS);
+    chartEl.innerHTML = days.map(function(day){
+      var c = data[day.date]||0;
+      var h = Math.min((c/GOAL)*100, 100);
+      var comp = c >= GOAL ? ' complete' : '';
+      var td = day.isToday ? ' today' : '';
+      return '<div class="history-day'+td+'">'
+        +'<span class="history-count">'+(c>0?c:'')+'</span>'
+        +'<div class="history-bar-track"><div class="history-bar'+comp+'" style="height:'+h+'%"></div></div>'
+        +'<span class="history-day-label">'+(day.isToday?'Today':day.label)+'</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  function lastN(n){
+    var out = [], now = new Date();
+    for(var i=n-1;i>=0;i--){
+      var d = new Date(now);
+      d.setDate(d.getDate()-i);
+      out.push({
+        date: d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
+        label: d.toLocaleDateString('en-US',{weekday:'short'}),
+        isToday: i===0
+      });
+    }
+    return out;
+  }
+
+  /* Animations */
+  function bump(){
+    countEl.classList.remove('bump');
+    void countEl.offsetWidth;
+    countEl.classList.add('bump');
+    setTimeout(function(){ countEl.classList.remove('bump') }, 300);
+  }
+
+  function toast(txt){
+    toastEl.textContent = txt;
+    toastEl.classList.remove('show');
+    void toastEl.offsetWidth;
+    toastEl.classList.add('show');
+  }
+
+  function ripple(btn){
+    var r = document.createElement('span');
+    r.className = 'ripple';
+    var s = Math.max(btn.offsetWidth, btn.offsetHeight);
+    r.style.width = r.style.height = s+'px';
+    r.style.left = '50%';
+    r.style.top = '50%';
+    r.style.marginLeft = -(s/2)+'px';
+    r.style.marginTop = -(s/2)+'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', function(){ r.remove() });
+  }
+
+  function celebrate(){
+    celebEl.classList.remove('hidden');
+    var cols = ['#38BDF8','#818CF8','#34D399','#F59E0B','#EC4899','#A78BFA'];
+    for(var i=0;i<45;i++){
+      var c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random()*100+'%';
+      c.style.setProperty('--del', (Math.random()*.8)+'s');
+      c.style.setProperty('--dur', (1.5+Math.random()*1.5)+'s');
+      c.style.background = cols[Math.floor(Math.random()*cols.length)];
+      var sz = 5+Math.random()*7;
+      c.style.width = sz+'px';
+      c.style.height = sz+'px';
+      if(Math.random()>.5) c.style.borderRadius = '50%';
+      celebEl.appendChild(c);
+    }
+    setTimeout(function(){ celebEl.innerHTML=''; celebEl.classList.add('hidden') }, 3500);
+  }
+
+  /* Cleanup old entries */
+  function cleanup(){
+    var data = load(), cutoff = new Date(), changed = false;
+    cutoff.setDate(cutoff.getDate()-60);
+    var cs = cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
+    Object.keys(data).forEach(function(k){ if(k<cs){ delete data[k]; changed=true; }});
+    if(changed) save(data);
+  }
+
+  /* Day rollover detection */
+  var currentDay = today();
+  function checkDay(){
+    if(today()!==currentDay){ currentDay=today(); render(); }
+  }
+  setInterval(checkDay, 60000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkDay() });
+
+  /* Service Worker */
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  }
+
+  /* Events */
+  btnAdd.addEventListener('click', add);
+  btnMin.addEventListener('click', sub);
+
+  /* Init */
+  cleanup();
+  fillEl.style.transition = 'none';
+  fillEl.style.height = '0%';
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      fillEl.style.transition = '';
+      render();
+    });
+  });
+})();
+</script>
+</body>
+</html>
